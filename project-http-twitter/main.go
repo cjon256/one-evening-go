@@ -13,6 +13,12 @@ type Tweet struct {
 	Location string `json:"location"`
 }
 
+var CurrentID = 0
+
+type IDHolder struct {
+	ID int
+}
+
 func tweet(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -30,6 +36,16 @@ func tweet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Printf("Tweet: `%s` from %s\n", u.Message, u.Location)
+
+	// each tweet has a unique ID which we implement in the simlest way possible
+	CurrentID++
+	payload, err := json.Marshal(IDHolder{ID: CurrentID})
+	if err != nil {
+		log.Println("Failed to marshal:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Write(payload)
 }
 
 func main() {
