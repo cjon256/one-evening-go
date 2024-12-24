@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -8,10 +9,12 @@ import (
 )
 
 func main() {
+	listAll := flag.Bool("a", false, "List all files")
+	flag.Parse()
 	testdata := "testdata"
 	files := listFiles(testdata)
 	for _, f := range files {
-		if strings.HasPrefix(f, ".") {
+		if !*listAll && strings.HasPrefix(f, ".") {
 			continue
 		}
 		fmt.Println(f)
