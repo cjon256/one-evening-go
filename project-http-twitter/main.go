@@ -18,20 +18,25 @@ type IDHolder struct {
 }
 
 type TweetRepository interface {
-	getID() int
-	tweet(w http.ResponseWriter, r *http.Request)
+	addTweet() int
 }
 
 type TweetMemoryRepository struct {
-	ID int
+	ID     int
+	Tweets []Tweet
 }
 
-func (repo TweetMemoryRepository) getID() int {
+type TweetServer struct {
+	repo TweetMemoryRepository
+}
+
+func (repo TweetMemoryRepository) addTweet(tweet Tweet) int {
 	repo.ID++
+	repo.Tweets = append(repo.Tweets, tweet)
 	return repo.ID
 }
 
-func (repo TweetMemoryRepository) tweet(w http.ResponseWriter, r *http.Request) {
+func (srv TweetServer) tweet(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Println("Failed to read body:", err)
@@ -50,7 +55,7 @@ func (repo TweetMemoryRepository) tweet(w http.ResponseWriter, r *http.Request) 
 	fmt.Printf("Tweet: `%s` from %s\n", u.Message, u.Location)
 
 	// each tweet has a unique ID which we implement in the simlest way possible
-	id := repo.getID()
+	id := srv.repo.addTweet(u)
 	payload, err := json.Marshal(IDHolder{ID: id})
 	if err != nil {
 		log.Println("Failed to marshal:", err)
@@ -61,7 +66,7 @@ func (repo TweetMemoryRepository) tweet(w http.ResponseWriter, r *http.Request) 
 }
 
 func main() {
-	repo := TweetMemoryRepository{}
-	http.HandleFunc("/tweets", repo.tweet)
+	server := TweetServer{}
+	http.HandleFunc("/tweets", server.tweet)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
