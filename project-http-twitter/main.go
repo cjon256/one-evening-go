@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 )
 
 type Tweet struct {
@@ -47,14 +48,20 @@ func (repo TweetMemoryRepository) getTweets() (TweetsList, error) {
 }
 
 func (srv *TweetServer) tweets(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	defer func() {
+		duration := time.Since(start)
+		fmt.Printf("%s %s %s\n", r.Method, r.URL, duration)
+	}()
+
 	if r.Method == http.MethodPost {
 		srv.addTweet(w, r)
 	} else if r.Method == http.MethodGet {
-		srv.listTweets(w, r)
+		srv.listTweets(w)
 	}
 }
 
-func (srv TweetServer) listTweets(w http.ResponseWriter, r *http.Request) {
+func (srv TweetServer) listTweets(w http.ResponseWriter) {
 	tweets, _ := srv.repo.getTweets()
 	payload, err := json.Marshal(tweets)
 	if err != nil {
@@ -65,6 +72,15 @@ func (srv TweetServer) listTweets(w http.ResponseWriter, r *http.Request) {
 	w.Write(payload)
 }
 
+/*
+* Log requests using the following format:
+
+Call Printf inside of a anonymous function passed to defer.
+
+To measure duration (how long a request took), call start := time.Now() at the beginning of the handler and duration := time.Since(start) in defer.
+
+*/
+
 func (srv *TweetServer) addTweet(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -73,7 +89,6 @@ func (srv *TweetServer) addTweet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
-
 	u := Tweet{}
 
 	if err := json.Unmarshal(body, &u); err != nil {
