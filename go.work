@@ -2,4 +2,5 @@ go 1.23.3
 
 use (
 	./14-packages/04-go-get/
+	./project-http-twitter
 )
