@@ -13,13 +13,25 @@ type Tweet struct {
 	Location string `json:"location"`
 }
 
-var CurrentID = 0
-
 type IDHolder struct {
 	ID int
 }
 
-func tweet(w http.ResponseWriter, r *http.Request) {
+type TweetRepository interface {
+	getID() int
+	tweet(w http.ResponseWriter, r *http.Request)
+}
+
+type TweetMemoryRepository struct {
+	ID int
+}
+
+func (repo TweetMemoryRepository) getID() int {
+	repo.ID++
+	return repo.ID
+}
+
+func (repo TweetMemoryRepository) tweet(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Println("Failed to read body:", err)
@@ -38,8 +50,8 @@ func tweet(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Tweet: `%s` from %s\n", u.Message, u.Location)
 
 	// each tweet has a unique ID which we implement in the simlest way possible
-	CurrentID++
-	payload, err := json.Marshal(IDHolder{ID: CurrentID})
+	id := repo.getID()
+	payload, err := json.Marshal(IDHolder{ID: id})
 	if err != nil {
 		log.Println("Failed to marshal:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -49,6 +61,7 @@ func tweet(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/tweets", tweet)
+	repo := TweetMemoryRepository{}
+	http.HandleFunc("/tweets", repo.tweet)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
